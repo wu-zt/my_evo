@@ -14,11 +14,11 @@ from evogym import EvoWorld, EvoSim, EvoViewer, sample_robot
 def is_connected(structure):
     if not np.any(structure):
         return False
-        
+    #measure the size of matrix,and then give the number to(rows,cols)
     rows, cols = structure.shape
     visited = np.zeros((rows, cols), dtype=bool)
     
-    # Find first non-zero element
+    # Find first not vacant box of robot
     start_r, start_c = -1, -1
     for r in range(rows):
         for c in range(cols):
@@ -100,7 +100,7 @@ def run_simulation(world,robot_structures,view = False):
             control.append(np.sin(time*frequency + i*offset))
 
         return np.array(control)
-
+    #caculate the numbers of actuators,if no actuators return -1000
     try:
         robot_stars_pos = sim.object_pos_at_time(sim.get_time(),"robot001")
     except:
