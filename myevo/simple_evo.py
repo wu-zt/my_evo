@@ -1,6 +1,7 @@
 import math
 import os
 import random
+import datetime
 
 import numpy as np
 
@@ -55,7 +56,7 @@ def is_connected(structure):
 
 # add the robot to the world
 # the run_simulation function evaluate how good a specific robot is
-def run_simulation(world, robot_structures, view=False):
+def run_simulation(world, robot_structures, view=False, save_video_path=None):
     if not is_connected(robot_structures):
         return [-1000]
 
@@ -111,17 +112,32 @@ def run_simulation(world, robot_structures, view=False):
 
     robot_stars_pos = np.mean(robot_stars_pos, axis=1)
 
+    imgs = []
     for steps in range(200):
         sim.step()
         sim.set_action('robot001', sin_control_array(input, steps))
         # viewer.render()
         if view:
             viewer.render(mode="screen")
+        if save_video_path:
+            img = viewer.render(mode="img")
+            if img is not None:
+                imgs.append(img.astype(np.uint8))
 
     robot_end_pos = sim.object_pos_at_time(sim.get_time(), "robot001")
     robot_end_pos = np.mean(robot_end_pos, axis=1)
 
     distance = robot_end_pos - robot_stars_pos
+
+    if save_video_path:
+        if len(imgs) > 0:
+            try:
+                imageio.mimsave(save_video_path, imgs, duration=0.1)
+                print(f"Video saved to {save_video_path}")
+            except Exception as e:
+                print(f"Failed to save video: {e}")
+        else:
+            print("No frames collected for video.")
 
     return distance
 
@@ -159,4 +175,22 @@ for i in range(100):
 print(best_distance)
 print(best_robot)
 
-run_simulation(world, best_robot, view=True)
+# Get absolute path to the directory containing this script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Create log directory
+run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+log_dir = os.path.join(script_dir, "my_logs", run_id)
+os.makedirs(log_dir, exist_ok=True)
+print(f"Saving run data to {log_dir}")
+
+# Save Best Robot CSV
+csv_path = os.path.join(log_dir, "best_robot.csv")
+np.savetxt(csv_path, best_robot, fmt="%d", delimiter=",")
+print(f"Saved best robot structure to {csv_path}")
+
+# Save Best Robot Video
+video_path = os.path.join(log_dir, "best_robot.gif")
+print(f"Generating video to {video_path}...")
+run_simulation(world, best_robot, view=True, save_video_path=video_path)
+print("Done.")
